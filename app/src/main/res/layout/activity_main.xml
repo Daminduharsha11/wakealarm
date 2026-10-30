@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:gravity="center">
+
+    <TextView
+        android:id="@+id/status_text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Pixel Power Scheduler Ready\nTap a test button below."
+        android:textSize="16sp"
+        android:gravity="center"
+        android:layout_marginBottom="24dp"/>
+
+    <Button
+        android:id="@+id/btn_test_root"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Test Root Access"
+        android:layout_marginBottom="12dp"/>
+
+    <Button
+        android:id="@+id/btn_test_alarm"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Test Alarm Detection &amp; RTC Sync"/>
+
+</LinearLayout>

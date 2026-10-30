@@ -1,28 +1,20 @@
-# Built application files
-*.apk
-*.ap_
-*.aab
-
-# Files for the Dalvik VM
-*.dex
-
-# Java class files
-*.class
-
-# Generated files
-bin/
-gen/
-out/
-
-# Gradle generated files
+# Android SDK & Build tools if placed locally
+android-sdk/
 .gradle/
 build/
+.cxx/
 
-# Local configuration file (sdk.path, etc.)
+# App-specific build outputs & CXX
+app/build/
+app/.cxx/
+app/src/assets/
+
+# Local configuration files
 local.properties
-
-# IDE files
-.idea/
-.vscode/
 *.iml
+.idea/
 .DS_Store
+
+# Built outputs
+*.apk
+*.aab
