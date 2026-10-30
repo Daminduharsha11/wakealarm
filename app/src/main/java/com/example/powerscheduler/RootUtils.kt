@@ -90,4 +90,19 @@ object RootUtils {
             Pair(false, "Shutdown exception: ${e.localizedMessage}")
         }
     }
+    fun checkRootAndRtc(): Pair<Boolean, String> {
+        return try {
+            val process = Runtime.getRuntime().exec(arrayOf("su", "-c", "ls -l /dev/rtc0"))
+            val output = process.inputStream.bufferedReader().readText().trim()
+            val exitCode = process.waitFor()
+            
+            if (exitCode == 0 && output.isNotEmpty()) {
+                Pair(true, "Root granted & RTC hardware ready ($output)")
+            } else {
+                Pair(false, "Root check passed, but /dev/rtc0 not accessible.")
+            }
+        } catch (e: Exception) {
+            Pair(false, "Root access denied or unavailable: ${e.localizedMessage}")
+        }
+    }
 }

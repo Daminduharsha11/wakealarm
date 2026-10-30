@@ -1,3 +1,7 @@
 <resources>
-    <style name="Theme.PowerScheduler" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.PowerScheduler" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/md_theme_primary</item>
+        <item name="colorOnPrimary">@color/md_theme_onPrimary</item>
+        <item name="colorContainer">@color/md_theme_primaryContainer</item>
+    </style>
 </resources>
