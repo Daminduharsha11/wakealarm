@@ -18,7 +18,7 @@
         android:id="@+id/statusText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Checking status..."
+        android:text="Status: Ready (Listening for alarms &amp; boot)"
         android:textSize="16sp"
         android:gravity="center"
         android:layout_marginBottom="24dp" />
@@ -27,6 +27,14 @@
         android:id="@+id/testButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Test RTC Alarm Write" />
+        android:text="Test RTC Alarm Write"
+        android:layout_marginBottom="12dp" />
+
+    <Button
+        android:id="@+id/shutdownButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Test Shutdown (reboot -p)"
+        android:backgroundTint="#D32F2F" />
 
 </LinearLayout>

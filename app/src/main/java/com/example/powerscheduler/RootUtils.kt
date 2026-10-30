@@ -76,4 +76,18 @@ object RootUtils {
             false to "Exception: ${e.localizedMessage}"
         }
     }
+
+    fun shutdownDevice(): Pair<Boolean, String> {
+        return try {
+            val process = Runtime.getRuntime().exec(arrayOf("su", "-c", "reboot -p"))
+            val exitCode = process.waitFor()
+            if (exitCode == 0) {
+                Pair(true, "Shutdown command executed successfully")
+            } else {
+                Pair(false, "Shutdown failed with exit code $exitCode")
+            }
+        } catch (e: Exception) {
+            Pair(false, "Shutdown exception: ${e.localizedMessage}")
+        }
+    }
 }

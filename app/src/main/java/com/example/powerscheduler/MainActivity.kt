@@ -14,6 +14,7 @@ class MainActivity : Activity() {
 
         val statusText = findViewById<TextView>(R.id.statusText)
         val testButton = findViewById<Button>(R.id.testButton)
+        val shutdownButton = findViewById<Button>(R.id.shutdownButton)
 
         try {
             statusText.text = "Status: Ready (Listening for alarms & boot)"
@@ -32,6 +33,14 @@ class MainActivity : Activity() {
             } else {
                 Toast.makeText(this, "Failed to write RTC. See status.", Toast.LENGTH_LONG).show()
                 statusText.text = "Last Test: FAILED\n$message"
+            }
+        }
+
+        shutdownButton.setOnClickListener {
+            val (success, message) = RootUtils.shutdownDevice()
+            if (!success) {
+                Toast.makeText(this, "Shutdown failed: $message", Toast.LENGTH_LONG).show()
+                statusText.text = "Shutdown Error: $message"
             }
         }
     }
