@@ -1,14 +1,18 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
+    <!-- Required for root execution -->
+    <uses-permission android:name="android.permission.ACCESS_SUPERUSER" />
+    <!-- Required to listen for system boot -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <application
         android:allowBackup="true"
-        android:label="Pixel Power Scheduler"
+        android:icon="@android:drawable/ic_menu_compass"
+        android:label="@string/app_name"
+        android:roundIcon="@android:drawable/ic_menu_compass"
         android:supportsRtl="true"
-        android:theme="@style/Theme.AppCompat.DayNight">
-        
+        android:theme="@style/Theme.PowerScheduler">
+
         <activity
             android:name=".MainActivity"
             android:exported="true">
@@ -18,13 +22,14 @@
             </intent-filter>
         </activity>
 
+        <!-- Alarm and Boot broadcast receiver -->
         <receiver
             android:name=".AlarmReceiver"
-            android:enabled="true"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.app.action.NEXT_ALARM_CLOCK_CHANGED" />
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
             </intent-filter>
         </receiver>
 

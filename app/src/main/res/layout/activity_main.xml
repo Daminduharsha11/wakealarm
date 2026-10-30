@@ -7,25 +7,26 @@
     android:gravity="center">
 
     <TextView
-        android:id="@+id/status_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Power Scheduler"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="16dp" />
+
+    <TextView
+        android:id="@+id/statusText"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Pixel Power Scheduler Ready\nTap a test button below."
+        android:text="Checking status..."
         android:textSize="16sp"
         android:gravity="center"
-        android:layout_marginBottom="24dp"/>
+        android:layout_marginBottom="24dp" />
 
     <Button
-        android:id="@+id/btn_test_root"
+        android:id="@+id/testButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Test Root Access"
-        android:layout_marginBottom="12dp"/>
-
-    <Button
-        android:id="@+id/btn_test_alarm"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Test Alarm Detection &amp; RTC Sync"/>
+        android:text="Test RTC Alarm Write" />
 
 </LinearLayout>
