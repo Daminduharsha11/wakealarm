@@ -1,7 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.PowerScheduler" parent="Theme.Material3.DayNight.NoActionBar">
-        <item name="colorPrimary">@color/md_theme_primary</item>
-        <item name="colorOnPrimary">@color/md_theme_onPrimary</item>
-        <item name="colorContainer">@color/md_theme_primaryContainer</item>
-    </style>
+    <!-- Material 3, follows system light/dark. Dynamic colors are applied in MainActivity (Android 12+). -->
+    <style name="Theme.PowerScheduler" parent="Theme.Material3.DayNight.NoActionBar" />
 </resources>
