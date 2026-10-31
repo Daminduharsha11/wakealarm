@@ -2,4 +2,11 @@
 <resources>
     <!-- Material 3, follows system light/dark. Dynamic colors are applied in MainActivity (Android 12+). -->
     <style name="Theme.PowerScheduler" parent="Theme.Material3.DayNight.NoActionBar" />
+
+    <!-- Applied in MainActivity only when the system is in dark mode: true black for AMOLED. -->
+    <style name="ThemeOverlay.PowerScheduler.PureBlack" parent="">
+        <item name="colorSurface">#000000</item>
+        <item name="android:colorBackground">#000000</item>
+        <item name="android:windowBackground">@android:color/black</item>
+    </style>
 </resources>

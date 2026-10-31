@@ -7,6 +7,12 @@ android {
     namespace = "com.example.powerscheduler"
     compileSdk = 34
 
+    buildTypes {
+    debug {
+    isDebuggable = false
+       }
+    }
+
     defaultConfig {
         applicationId = "com.example.powerscheduler"
         minSdk = 26
@@ -31,7 +37,18 @@ android {
         }
     }
 
+       packaging {
+       jniLibs {
+           useLegacyPackaging = true
+       }
+    }
+
     buildTypes {
+
+           debug {
+        isDebuggable = false
+        }   
+
         release {
             isMinifyEnabled = false
             proguardFiles(

@@ -5,12 +5,19 @@ import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.content.res.ColorStateList
+import android.content.res.Configuration
+import android.graphics.Color
+import android.net.Uri
 import android.os.Bundle
 import android.provider.AlarmClock
 import android.widget.CompoundButton
+import android.widget.ImageButton
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.graphics.ColorUtils
+import androidx.core.view.WindowCompat
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.card.MaterialCardView
 import com.google.android.material.chip.Chip
 import com.google.android.material.color.DynamicColors
 import com.google.android.material.color.MaterialColors
@@ -22,6 +29,9 @@ import com.google.android.material.timepicker.TimeFormat
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+
+// Change this to the app's repo link once it is public.
+private const val GITHUB_URL = "https://github.com/Daminduharsha11/wakealarm"
 
 class MainActivity : AppCompatActivity() {
 
@@ -47,10 +57,17 @@ class MainActivity : AppCompatActivity() {
         refresh()
     }
 
+    private fun isNight(): Boolean =
+        (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+
     override fun onCreate(savedInstanceState: Bundle?) {
         DynamicColors.applyToActivityIfAvailable(this) // Material You on Android 12+
+        val night = isNight()
+        if (night) theme.applyStyle(R.style.ThemeOverlay_PowerScheduler_PureBlack, true) // pure black (AMOLED)
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        styleSystemBars(night)
+        if (night) tintCards()
 
         switchShutdown = findViewById(R.id.switchShutdown)
         tvShutdownTime = findViewById(R.id.tvShutdownTime)
@@ -77,22 +94,32 @@ class MainActivity : AppCompatActivity() {
             }
         }.start()
 
+        // GitHub link (top right)
+        findViewById<ImageButton>(R.id.btnGithub).setOnClickListener {
+            try {
+                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(GITHUB_URL)))
+            } catch (e: ActivityNotFoundException) {
+                snack("No browser found")
+            }
+        }
+
         // Keep the saved schedule alive
         if (Scheduler.isEnabled(this)) Scheduler.schedule(this)
 
-        // Time picker: tapping the big time or the button
+        // Time picker: opens on the clock dial (not keyboard input)
         val openPicker = {
             val picker = MaterialTimePicker.Builder()
                 .setTimeFormat(TimeFormat.CLOCK_24H)
+                .setInputMode(MaterialTimePicker.INPUT_MODE_CLOCK)
                 .setHour(Scheduler.hour(this))
                 .setMinute(Scheduler.minute(this))
-                .setTitleText("Shutdown time")
+                .setTitleText("Scheduled power off")
                 .build()
             picker.addOnPositiveButtonClickListener {
                 Scheduler.save(this, picker.hour, picker.minute, true)
                 Scheduler.schedule(this)
                 refresh()
-                snack(String.format(Locale.getDefault(), "Daily shutdown set for %02d:%02d", picker.hour, picker.minute))
+                snack(String.format(Locale.getDefault(), "Power off scheduled daily at %02d:%02d", picker.hour, picker.minute))
             }
             picker.show(supportFragmentManager, "SHUTDOWN_PICKER")
         }
@@ -120,7 +147,7 @@ class MainActivity : AppCompatActivity() {
             }.start()
         }
 
-        // Manual shutdown, arms the wake alarm first
+        // Manual power off, arms the wake alarm first
         btnManualShutdown.setOnClickListener {
             val next = (getSystemService(Context.ALARM_SERVICE) as AlarmManager).nextAlarmClock
             val msg = if (next != null)
@@ -128,9 +155,9 @@ class MainActivity : AppCompatActivity() {
             else "No system alarm is set, so the phone will stay off until you power it on."
 
             MaterialAlertDialogBuilder(this)
-                .setTitle("Shut down now?")
+                .setTitle("Power off now?")
                 .setMessage(msg)
-                .setPositiveButton("Shut down") { _, _ ->
+                .setPositiveButton("Power off") { _, _ ->
                     Thread {
                         Scheduler.armWake(app)
                         RootUtils.shutdownDevice()
@@ -148,8 +175,28 @@ class MainActivity : AppCompatActivity() {
         refresh()
     }
 
+    /** Status and navigation bars use the page surface color instead of the accent color. */
+    @Suppress("DEPRECATION")
+    private fun styleSystemBars(night: Boolean) {
+        val bg = MaterialColors.getColor(this, com.google.android.material.R.attr.colorSurface, Color.BLACK)
+        window.statusBarColor = bg
+        window.navigationBarColor = bg
+        val controller = WindowCompat.getInsetsController(window, window.decorView)
+        controller.isAppearanceLightStatusBars = !night
+        controller.isAppearanceLightNavigationBars = !night
+    }
+
+    /** On a pure black background, cards get a very subtle tint of the accent so they stay visible. */
+    private fun tintCards() {
+        val primary = MaterialColors.getColor(this, com.google.android.material.R.attr.colorPrimary, Color.WHITE)
+        val cardColor = ColorUtils.blendARGB(Color.BLACK, primary, 0.10f)
+        listOf(R.id.cardShutdown, R.id.cardWake, R.id.cardSystem).forEach {
+            findViewById<MaterialCardView>(it).setCardBackgroundColor(cardColor)
+        }
+    }
+
     private fun refresh() {
-        // --- Shutdown card ---
+        // --- Scheduled power off ---
         val enabled = Scheduler.isEnabled(this)
         switchShutdown.setOnCheckedChangeListener(null)
         switchShutdown.isChecked = enabled
@@ -162,7 +209,7 @@ class MainActivity : AppCompatActivity() {
             "Next: ${dayFmt.format(Date(at))} (${untilText(at - System.currentTimeMillis())})"
         } else "Off"
 
-        // --- Power-on card ---
+        // --- Scheduled power on ---
         val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val next = alarmManager.nextAlarmClock
         if (next != null) {
