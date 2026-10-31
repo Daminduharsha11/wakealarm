@@ -1,9 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- Required for root execution -->
     <uses-permission android:name="android.permission.ACCESS_SUPERUSER" />
-    <!-- Required to listen for system boot -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- Needed for exact shutdown alarms on Android 12+ (RootUtils.setupRoot grants it via appops) -->
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 
     <application
         android:allowBackup="true"
@@ -22,7 +22,7 @@
             </intent-filter>
         </activity>
 
-        <!-- Alarm and Boot broadcast receiver -->
+        <!-- System broadcasts: boot + next-alarm changes -->
         <receiver
             android:name=".AlarmReceiver"
             android:exported="true">
@@ -32,6 +32,11 @@
                 <action android:name="android.intent.action.QUICKBOOT_POWERON" />
             </intent-filter>
         </receiver>
+
+        <!-- Fired by our own AlarmManager alarm only -->
+        <receiver
+            android:name=".ShutdownReceiver"
+            android:exported="false" />
 
     </application>
 </manifest>

@@ -16,70 +16,120 @@ import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
 
-    private var shutdownHour = 23
-    private var shutdownMinute = 0
+    private lateinit var tvNextAlarm: TextView
+    private lateinit var tvRtcStatus: TextView
+    private lateinit var btnSetShutdownTime: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
         val tvRootStatus = findViewById<TextView>(R.id.tvRootStatus)
-        val tvNextAlarm = findViewById<TextView>(R.id.tvNextAlarm)
-        val tvRtcStatus = findViewById<TextView>(R.id.tvRtcStatus)
-        val btnSetShutdownTime = findViewById<Button>(R.id.btnSetShutdownTime)
+        tvNextAlarm = findViewById(R.id.tvNextAlarm)
+        tvRtcStatus = findViewById(R.id.tvRtcStatus)
+        btnSetShutdownTime = findViewById(R.id.btnSetShutdownTime)
         val btnTestRtc = findViewById<Button>(R.id.btnTestRtc)
         val btnManualShutdown = findViewById<Button>(R.id.btnManualShutdown)
 
-        // 1. Verify Root & RTC on Startup and show friendly dialog
-        val (rootOk, rootMsg) = RootUtils.checkRootAndRtc()
-        if (rootOk) {
-            tvRootStatus.text = "Root Status: Granted ✓"
-            showStatusDialog("Root Access Confirmed", rootMsg)
-        } else {
-            tvRootStatus.text = "Root Status: Failed ✗"
-            showStatusDialog("Root Warning", rootMsg)
-        }
+        // 1. Root check off the main thread (su can block)
+        val app = applicationContext
+        Thread {
+            RootUtils.setupRoot(app)
+            val (ok, msg) = RootUtils.checkRootAndRtc()
+            runOnUiThread {
+                tvRootStatus.text = if (ok) "Root Status: Granted ✓" else "Root Status: Failed ✗"
+                if (!ok) showStatusDialog("Root Warning", msg)
+            }
+        }.start()
 
-        // 2. Load system alarm status
-        updateNextAlarmDisplay(tvNextAlarm, tvRtcStatus)
+        // 2. Re-apply saved schedule (cheap, keeps the alarm alive if it was lost)
+        if (Scheduler.isEnabled(this)) Scheduler.schedule(this)
+        refresh()
 
-        // 3. Time Picker for Shutdown
+        // 3. Shutdown time picker: tap = set + enable, long-press = disable
         btnSetShutdownTime.setOnClickListener {
             val picker = MaterialTimePicker.Builder()
                 .setTimeFormat(TimeFormat.CLOCK_24H)
-                .setHour(shutdownHour)
-                .setMinute(shutdownMinute)
+                .setHour(Scheduler.hour(this))
+                .setMinute(Scheduler.minute(this))
                 .setTitleText("Select Auto-Shutdown Time")
                 .build()
 
             picker.addOnPositiveButtonClickListener {
-                shutdownHour = picker.hour
-                shutdownMinute = picker.minute
-                val timeFormatted = String.format(Locale.getDefault(), "%02d:%02d", shutdownHour, shutdownMinute)
-                btnSetShutdownTime.text = "Shutdown Time: $timeFormatted"
-                Toast.makeText(this, "Shutdown scheduled for $timeFormatted", Toast.LENGTH_SHORT).show()
+                Scheduler.save(this, picker.hour, picker.minute, true)
+                Scheduler.schedule(this)
+                Toast.makeText(
+                    this,
+                    String.format(Locale.getDefault(), "Shutdown scheduled daily at %02d:%02d", picker.hour, picker.minute),
+                    Toast.LENGTH_SHORT
+                ).show()
+                refresh()
             }
-
             picker.show(supportFragmentManager, "SHUTDOWN_PICKER")
         }
-
-        // 4. Manual RTC Test
-        btnTestRtc.setOnClickListener {
-            val testEpochSec = (System.currentTimeMillis() / 1000) + 3600
-            val (success, message) = RootUtils.setRtcWakeAlarm(this, testEpochSec)
-            Toast.makeText(this, if (success) "RTC Test Passed" else "RTC Test Failed", Toast.LENGTH_SHORT).show()
-            tvRtcStatus.text = "Last Test: $message"
+        btnSetShutdownTime.setOnLongClickListener {
+            Scheduler.cancel(this)
+            Toast.makeText(this, "Auto-shutdown disabled", Toast.LENGTH_SHORT).show()
+            refresh()
+            true
         }
 
-        // 5. Manual Shutdown
+        // 4. Manual RTC test: arms a wake alarm 120s from RTC-now (relative)
+        btnTestRtc.setOnClickListener {
+            tvRtcStatus.text = "Testing RTC..."
+            Thread {
+                val (success, message) = RootUtils.setRtcWakeIn(app, 120)
+                runOnUiThread {
+                    Toast.makeText(this, if (success) "RTC Test Passed" else "RTC Test Failed", Toast.LENGTH_SHORT).show()
+                    tvRtcStatus.text = "Last Test: $message"
+                }
+            }.start()
+        }
+
+        // 5. Manual shutdown (also arms the wake alarm first)
         btnManualShutdown.setOnClickListener {
             AlertDialog.Builder(this)
                 .setTitle("Confirm Shutdown")
-                .setMessage("Are you sure you want to shut down the device now?")
-                .setPositiveButton("Shutdown") { _, _ -> RootUtils.shutdownDevice() }
+                .setMessage("Shut down now? The power-on alarm will be armed first if a system alarm exists.")
+                .setPositiveButton("Shutdown") { _, _ ->
+                    Thread {
+                        Scheduler.armWake(app)
+                        RootUtils.shutdownDevice()
+                    }.start()
+                }
                 .setNegativeButton("Cancel", null)
                 .show()
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        refresh()
+    }
+
+    private fun refresh() {
+        val sdf = SimpleDateFormat("EEE, dd MMM HH:mm", Locale.getDefault())
+
+        btnSetShutdownTime.text = if (Scheduler.isEnabled(this))
+            String.format(Locale.getDefault(), "Shutdown Time: %02d:%02d", Scheduler.hour(this), Scheduler.minute(this))
+        else "Set Shutdown Time (off)"
+
+        val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        val next = alarmManager.nextAlarmClock
+        tvNextAlarm.text = if (next != null)
+            "Next System Alarm:\n${sdf.format(Date(next.triggerTime))}"
+        else "Next System Alarm: None set"
+
+        val sb = StringBuilder()
+        sb.append(
+            if (Scheduler.isEnabled(this)) "Auto-shutdown: ${sdf.format(Date(Scheduler.nextShutdownMs(this)))}"
+            else "Auto-shutdown: off"
+        )
+        sb.append(
+            if (next != null) "\nPower-on (RTC): ${sdf.format(Date(next.triggerTime - 300_000))}"
+            else "\nPower-on: none (set a system alarm)"
+        )
+        tvRtcStatus.text = sb.toString()
     }
 
     private fun showStatusDialog(title: String, message: String) {
@@ -88,22 +138,5 @@ class MainActivity : AppCompatActivity() {
             .setMessage(message)
             .setPositiveButton("OK", null)
             .show()
-    }
-
-    private fun updateNextAlarmDisplay(tvNextAlarm: TextView, tvRtcStatus: TextView) {
-        val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        val nextAlarm = alarmManager.nextAlarmClock
-
-        if (nextAlarm != null) {
-            val sdf = SimpleDateFormat("EEE, dd MMM HH:mm", Locale.getDefault())
-            val dateStr = sdf.format(Date(nextAlarm.triggerTime))
-            tvNextAlarm.text = "Next System Alarm:\n$dateStr"
-            
-            val rtcEpochSec = (nextAlarm.triggerTime / 1000) - 300
-            tvRtcStatus.text = "RTC Auto-Wake armed for:\n${sdf.format(Date(rtcEpochSec * 1000))}"
-        } else {
-            tvNextAlarm.text = "Next System Alarm: None set"
-            tvRtcStatus.text = "RTC Auto-Wake: Inactive"
-        }
     }
 }
